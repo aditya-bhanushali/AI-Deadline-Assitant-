@@ -34,44 +34,7 @@ Prof. Richards`
   }
 ];
 
-export const INITIAL_DEADLINES = [
-  {
-    id: 'dl-1',
-    course: 'Computer Networks',
-    title: 'Lab 2: Subnetting and IP Addressing',
-    description: 'Configure static routing, RIP, and OSPF in Cisco Packet Tracer. Document routing tables.',
-    dueDate: '2026-07-22T23:59:00',
-    urgency: 'High',
-    status: 'Pending'
-  },
-  {
-    id: 'dl-2',
-    course: 'Software Engineering',
-    title: 'SRS Documentation Submission',
-    description: 'Submit the completed Software Requirements Specification document for the team project.',
-    dueDate: '2026-07-25T18:00:00',
-    urgency: 'Medium',
-    status: 'Pending'
-  },
-  {
-    id: 'dl-3',
-    course: 'Database Management Systems',
-    title: 'Quiz 1: Relational Algebra & SQL Queries',
-    description: 'Online Moodle quiz covering SQL joins, aggregation queries, and schema constraints.',
-    dueDate: '2026-07-20T12:00:00',
-    urgency: 'High',
-    status: 'Completed'
-  },
-  {
-    id: 'dl-4',
-    course: 'Distributed Systems',
-    title: 'Research Paper Critique',
-    description: 'Submit a 2-page summary and critique of the MapReduce foundational paper.',
-    dueDate: '2026-08-05T23:59:00',
-    urgency: 'Low',
-    status: 'Pending'
-  }
-];
+export const INITIAL_DEADLINES = [];
 
 export const COURSES = [
   'Computer Networks',
@@ -279,54 +242,5 @@ export function simulateTeamsParser(messageText) {
 }
 
 
-// Generate simple mock ingest log history
-export const MOCK_INGEST_LOGS = [
-  {
-    id: 'log-1',
-    timestamp: '2026-07-19T10:15:23',
-    source: 'Discord API Webhook',
-    status: 'Success',
-    message: 'Parsed 2 events for Software Engineering from channel #announcements.'
-  },
-  {
-    id: 'log-2',
-    timestamp: '2026-07-19T11:02:45',
-    source: 'Gmail IMAP Sync',
-    status: 'Success',
-    message: 'Processed subject: "COMP_NET_402: Assignment 3 and Quiz 2". 2 deadlines extracted.'
-  },
-  {
-    id: 'log-3',
-    timestamp: '2026-07-19T14:36:11',
-    source: 'Manual Paste',
-    status: 'Success',
-    message: 'Parsed 1 event for Artificial Intelligence from paste buffer.'
-  },
-  {
-    id: 'log-4',
-    timestamp: '2026-07-19T16:20:00',
-    source: 'Outlook Integration',
-    status: 'Warning',
-    message: 'Email from prof.jones@university.edu scanned: No explicit due dates found.'
-  }
-];
-
-// Generate mock calendar export logs
-export const MOCK_EXPORT_LOGS = [
-  {
-    id: 'exp-1',
-    timestamp: '2026-07-19T12:00:10',
-    format: 'iCalendar (.ics)',
-    itemCount: 4,
-    status: 'Downloaded Client-side',
-    destination: 'User Local Disk'
-  },
-  {
-    id: 'exp-2',
-    timestamp: '2026-07-19T15:45:30',
-    format: 'iCalendar (.ics)',
-    itemCount: 5,
-    status: 'Downloaded Client-side',
-    destination: 'User Local Disk'
-  }
-];
+export const MOCK_INGEST_LOGS = [];
+export const MOCK_EXPORT_LOGS = [];

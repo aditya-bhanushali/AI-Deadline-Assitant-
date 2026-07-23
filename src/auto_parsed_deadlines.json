@@ -1,0 +1,478 @@
+{
+  "deadlines": [
+    {
+      "course": "General Academic",
+      "title": "Quiz 3",
+      "description": "Quiz 3 will take place on August 5th.",
+      "dueDate": "2026-08-05T10:00",
+      "urgency": "High",
+      "status": "Pending",
+      "id": "auto-email-1784652052322-3",
+      "extractedAt": "2026-07-21T16:40:52.322Z"
+    },
+    {
+      "course": "General Academic",
+      "title": "Final Project Prototype Submission",
+      "description": "Submit Final Project prototype upload.",
+      "dueDate": "2026-08-12T23:59",
+      "urgency": "High",
+      "status": "Pending",
+      "id": "auto-email-1784652052322-4",
+      "extractedAt": "2026-07-21T16:40:52.322Z"
+    },
+    {
+      "course": "COMPUTER_NETWORKS",
+      "title": "Assignment 4: Socket Programming",
+      "description": "Submit solutions for Socket Programming assignment.",
+      "dueDate": "2026-08-18T23:59",
+      "urgency": "High",
+      "status": "Pending",
+      "id": "auto-email-1784652026350-1",
+      "extractedAt": "2026-07-21T16:40:26.350Z"
+    },
+    {
+      "course": "COMPUTER_NETWORKS",
+      "title": "Midterm Exam",
+      "description": "Midterm examination for Computer Networks.",
+      "dueDate": "2026-08-22T09:00",
+      "urgency": "High",
+      "status": "Pending",
+      "id": "auto-email-1784652026350-2",
+      "extractedAt": "2026-07-21T16:40:26.351Z"
+    }
+  ],
+  "ingestLogs": [
+    {
+      "id": "log-imap-1784652410525-9901",
+      "timestamp": "2026-07-21T16:46:50.525Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your Weekly Mutual Funds Portfolio Summary as on 19 Jul 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Your Weekly Mutual Funds Portfolio Summary as on 1\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652407677-9901",
+      "timestamp": "2026-07-21T16:46:47.677Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your Weekly Mutual Funds Portfolio Summary as on 19 Jul 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Your Weekly Mutual Funds Portfolio Summary as on 1\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652403125-9901",
+      "timestamp": "2026-07-21T16:46:43.125Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your Weekly Mutual Funds Portfolio Summary as on 19 Jul 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Your Weekly Mutual Funds Portfolio Summary as on 1\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652398221-9901",
+      "timestamp": "2026-07-21T16:46:38.221Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your Weekly Mutual Funds Portfolio Summary as on 19 Jul 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Your Weekly Mutual Funds Portfolio Summary as on 1\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652390778-9902",
+      "timestamp": "2026-07-21T16:46:30.778Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "⚖️ Short Covering Fuels Nifty. Bank Nifty Sees Fresh Longs.",
+      "status": "Success",
+      "message": "Scanned email: \"⚖️ Short Covering Fuels Nifty. Bank Nifty Sees Fre\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652385856-9902",
+      "timestamp": "2026-07-21T16:46:25.856Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "⚖️ Short Covering Fuels Nifty. Bank Nifty Sees Fresh Longs.",
+      "status": "Success",
+      "message": "Scanned email: \"⚖️ Short Covering Fuels Nifty. Bank Nifty Sees Fre\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652377855-9903",
+      "timestamp": "2026-07-21T16:46:17.855Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your MongoDB Atlas M0 cluster has been automatically paused due to prolonged inactivity",
+      "status": "Success",
+      "message": "Scanned email: \"Your MongoDB Atlas M0 cluster has been automatical\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652372054-9903",
+      "timestamp": "2026-07-21T16:46:12.054Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your MongoDB Atlas M0 cluster has been automatically paused due to prolonged inactivity",
+      "status": "Success",
+      "message": "Scanned email: \"Your MongoDB Atlas M0 cluster has been automatical\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652364505-9904",
+      "timestamp": "2026-07-21T16:46:04.505Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "New Android Backup Storage Policy & Controls",
+      "status": "Success",
+      "message": "Scanned email: \"New Android Backup Storage Policy & Controls\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652359136-9904",
+      "timestamp": "2026-07-21T16:45:59.136Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "New Android Backup Storage Policy & Controls",
+      "status": "Success",
+      "message": "Scanned email: \"New Android Backup Storage Policy & Controls\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652351643-9905",
+      "timestamp": "2026-07-21T16:45:51.643Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "E-account statement for your SBI account(s).",
+      "status": "Success",
+      "message": "Scanned email: \"E-account statement for your SBI account(s).\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652346145-9905",
+      "timestamp": "2026-07-21T16:45:46.145Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "E-account statement for your SBI account(s).",
+      "status": "Success",
+      "message": "Scanned email: \"E-account statement for your SBI account(s).\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652338701-9906",
+      "timestamp": "2026-07-21T16:45:38.701Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Transactions In Your Demat Account",
+      "status": "Success",
+      "message": "Scanned email: \"Transactions In Your Demat Account\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652335873-9906",
+      "timestamp": "2026-07-21T16:45:35.873Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Transactions In Your Demat Account",
+      "status": "Success",
+      "message": "Scanned email: \"Transactions In Your Demat Account\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652333201-9906",
+      "timestamp": "2026-07-21T16:45:33.201Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Transactions In Your Demat Account",
+      "status": "Success",
+      "message": "Scanned email: \"Transactions In Your Demat Account\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652333001-9906",
+      "timestamp": "2026-07-21T16:45:33.001Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Transactions In Your Demat Account",
+      "status": "Success",
+      "message": "Scanned email: \"Transactions In Your Demat Account\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652325976-9907",
+      "timestamp": "2026-07-21T16:45:25.976Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Important Update: Introduction of Closing Auction Session (CAS) and Extended Equity Derivatives Trading Hours",
+      "status": "Success",
+      "message": "Scanned email: \"Important Update: Introduction of Closing Auction \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652320713-9907",
+      "timestamp": "2026-07-21T16:45:20.713Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Important Update: Introduction of Closing Auction Session (CAS) and Extended Equity Derivatives Trading Hours",
+      "status": "Success",
+      "message": "Scanned email: \"Important Update: Introduction of Closing Auction \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652312953-9908",
+      "timestamp": "2026-07-21T16:45:12.953Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "[GUIDE] opus for free",
+      "status": "Success",
+      "message": "Scanned email: \"[GUIDE] opus for free\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652307643-9908",
+      "timestamp": "2026-07-21T16:45:07.643Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "[GUIDE] opus for free",
+      "status": "Success",
+      "message": "Scanned email: \"[GUIDE] opus for free\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652294465-9909",
+      "timestamp": "2026-07-21T16:44:54.465Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Satvik Trivedi - Application Support Manager reacted to this post: Volvo Group Hiring Freshers…",
+      "status": "Success",
+      "message": "Scanned email: \"Satvik Trivedi - Application Support Manager react\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652292419-9909",
+      "timestamp": "2026-07-21T16:44:52.419Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Satvik Trivedi - Application Support Manager reacted to this post: Volvo Group Hiring Freshers…",
+      "status": "Success",
+      "message": "Scanned email: \"Satvik Trivedi - Application Support Manager react\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652289183-9909",
+      "timestamp": "2026-07-21T16:44:49.183Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Satvik Trivedi - Application Support Manager reacted to this post: Volvo Group Hiring Freshers…",
+      "status": "Success",
+      "message": "Scanned email: \"Satvik Trivedi - Application Support Manager react\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652282013-9910",
+      "timestamp": "2026-07-21T16:44:42.013Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Resume your banking anywhere - seamlessly switch on Yono",
+      "status": "Success",
+      "message": "Scanned email: \"Resume your banking anywhere - seamlessly switch o\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652279949-9910",
+      "timestamp": "2026-07-21T16:44:39.949Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Resume your banking anywhere - seamlessly switch on Yono",
+      "status": "Success",
+      "message": "Scanned email: \"Resume your banking anywhere - seamlessly switch o\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652276649-9910",
+      "timestamp": "2026-07-21T16:44:36.649Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Resume your banking anywhere - seamlessly switch on Yono",
+      "status": "Success",
+      "message": "Scanned email: \"Resume your banking anywhere - seamlessly switch o\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652269578-9911",
+      "timestamp": "2026-07-21T16:44:29.578Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "DP Bill cum transaction/Ledger statement of Client Id (1203320305958658) for month (June-2026)",
+      "status": "Success",
+      "message": "Scanned email: \"DP Bill cum transaction/Ledger statement of Client\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652267542-9911",
+      "timestamp": "2026-07-21T16:44:27.542Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "DP Bill cum transaction/Ledger statement of Client Id (1203320305958658) for month (June-2026)",
+      "status": "Success",
+      "message": "Scanned email: \"DP Bill cum transaction/Ledger statement of Client\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652263947-9911",
+      "timestamp": "2026-07-21T16:44:23.947Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "DP Bill cum transaction/Ledger statement of Client Id (1203320305958658) for month (June-2026)",
+      "status": "Success",
+      "message": "Scanned email: \"DP Bill cum transaction/Ledger statement of Client\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652257068-9912",
+      "timestamp": "2026-07-21T16:44:17.068Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "🧩 Heavyweights Fell. The Market Didn't. | UltraTech, ICICI Bank & Tatva Chintan Shine",
+      "status": "Success",
+      "message": "Scanned email: \"🧩 Heavyweights Fell. The Market Didn't. | UltraTe\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652244155-9913",
+      "timestamp": "2026-07-21T16:44:04.155Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "🧩 Heavyweights Fell. The Market Didn't. | UltraTech, ICICI Bank & Tatva Chintan Shine",
+      "status": "Success",
+      "message": "Scanned email: \"🧩 Heavyweights Fell. The Market Didn't. | UltraTe\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652231105-9914",
+      "timestamp": "2026-07-21T16:43:51.105Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Rediscover Harvard Online",
+      "status": "Success",
+      "message": "Scanned email: \"Rediscover Harvard Online\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652218222-9915",
+      "timestamp": "2026-07-21T16:43:38.222Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "📊 Nifty Stays Range-Bound | ICICI Bank, PNB & UltraTech in Focus",
+      "status": "Success",
+      "message": "Scanned email: \"📊 Nifty Stays Range-Bound | ICICI Bank, PNB & Ult\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652205064-9916",
+      "timestamp": "2026-07-21T16:43:25.064Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Certificate + LOR awaits. Join now!",
+      "status": "Success",
+      "message": "Scanned email: \"Certificate + LOR awaits. Join now!\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652192705-9917",
+      "timestamp": "2026-07-21T16:43:12.705Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Register of Securities & Funds for week ended Jul 18 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Register of Securities & Funds for week ended Jul \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652189071-9916",
+      "timestamp": "2026-07-21T16:43:09.071Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Certificate + LOR awaits. Join now!",
+      "status": "Success",
+      "message": "Scanned email: \"Certificate + LOR awaits. Join now!\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652180304-9918",
+      "timestamp": "2026-07-21T16:43:00.304Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your card, your rules: Customize your transaction limits on YONO SBI",
+      "status": "Success",
+      "message": "Scanned email: \"Your card, your rules: Customize your transaction \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652176731-9917",
+      "timestamp": "2026-07-21T16:42:56.731Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Register of Securities & Funds for week ended Jul 18 2026",
+      "status": "Success",
+      "message": "Scanned email: \"Register of Securities & Funds for week ended Jul \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652167967-9919",
+      "timestamp": "2026-07-21T16:42:47.967Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "naukri campus : Quiz is open for registration !!",
+      "status": "Success",
+      "message": "Scanned email: \"naukri campus : Quiz is open for registration !!\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652163954-9918",
+      "timestamp": "2026-07-21T16:42:43.954Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Your card, your rules: Customize your transaction limits on YONO SBI",
+      "status": "Success",
+      "message": "Scanned email: \"Your card, your rules: Customize your transaction \" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652155020-9920",
+      "timestamp": "2026-07-21T16:42:35.020Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Don’t miss conversations in Generative AI",
+      "status": "Success",
+      "message": "Scanned email: \"Don’t miss conversations in Generative AI\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652142675-9921",
+      "timestamp": "2026-07-21T16:42:22.675Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "New skill available: Puzzle solving 🧩",
+      "status": "Success",
+      "message": "Scanned email: \"New skill available: Puzzle solving 🧩\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652135649-9920",
+      "timestamp": "2026-07-21T16:42:15.649Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Don’t miss conversations in Generative AI",
+      "status": "Success",
+      "message": "Scanned email: \"Don’t miss conversations in Generative AI\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652129774-9922",
+      "timestamp": "2026-07-21T16:42:09.774Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "📉 Nifty Consolidates Near 24,180 | IndiGo, Tata Steel & TVS Motor Lead the Buzz",
+      "status": "Success",
+      "message": "Scanned email: \"📉 Nifty Consolidates Near 24,180 | IndiGo, Tata S\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652116846-9923",
+      "timestamp": "2026-07-21T16:41:56.846Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "stop renting ai",
+      "status": "Success",
+      "message": "Scanned email: \"stop renting ai\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652103928-9924",
+      "timestamp": "2026-07-21T16:41:43.928Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "The Big Reveal: IMS Success 2025 Unveiled!",
+      "status": "Success",
+      "message": "Scanned email: \"The Big Reveal: IMS Success 2025 Unveiled!\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652091378-9925",
+      "timestamp": "2026-07-21T16:41:31.378Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "📉 Nifty Consolidates Near 24,180 | IndiGo, Tata Steel & TVS Motor Lead the Buzz",
+      "status": "Success",
+      "message": "Scanned email: \"📉 Nifty Consolidates Near 24,180 | IndiGo, Tata S\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652078361-9926",
+      "timestamp": "2026-07-21T16:41:18.361Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "Security alert",
+      "status": "Success",
+      "message": "Scanned email: \"Security alert\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652076184-9924",
+      "timestamp": "2026-07-21T16:41:16.184Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "The Big Reveal: IMS Success 2025 Unveiled!",
+      "status": "Success",
+      "message": "Scanned email: \"The Big Reveal: IMS Success 2025 Unveiled!\" (No academic deadlines found)."
+    },
+    {
+      "id": "log-imap-1784652065420-9927",
+      "timestamp": "2026-07-21T16:41:05.420Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "No Subject",
+      "status": "Success",
+      "message": "Parsed 2 deadline(s) from email: \"No Subject\""
+    },
+    {
+      "id": "log-imap-1784652052323-9928",
+      "timestamp": "2026-07-21T16:40:52.323Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "No Subject",
+      "status": "Success",
+      "message": "Parsed 2 deadline(s) from email: \"No Subject\""
+    },
+    {
+      "id": "log-imap-1784652039444-9929",
+      "timestamp": "2026-07-21T16:40:39.444Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "No Subject",
+      "status": "Success",
+      "message": "Parsed 2 deadline(s) from email: \"No Subject\""
+    },
+    {
+      "id": "log-imap-1784652026351-9930",
+      "timestamp": "2026-07-21T16:40:26.351Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "No Subject",
+      "status": "Success",
+      "message": "Parsed 2 deadline(s) from email: \"No Subject\""
+    },
+    {
+      "id": "log-imap-1784652012950-9931",
+      "timestamp": "2026-07-21T16:40:12.950Z",
+      "source": "Gmail IMAP (adityabhanushali2006@gmail.com)",
+      "emailSubject": "New: AI for the Public Sector",
+      "status": "Success",
+      "message": "Scanned email: \"New: AI for the Public Sector\" (No academic deadlines found)."
+    }
+  ]
+}

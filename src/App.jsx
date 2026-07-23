@@ -19,19 +19,104 @@ import {
   ArrowRight,
   RefreshCw,
   Mail,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { PRESETS, INITIAL_DEADLINES, COURSES, simulateAgentParser, MOCK_INGEST_LOGS, MOCK_EXPORT_LOGS, MOCK_TEAMS_MESSAGES, simulateTeamsParser } from './mockData';
+import { parseDeadlinesWithGemini } from './geminiService';
+import autoParsedData from './auto_parsed_deadlines.json';
 
 function App() {
   // Navigation State: 'overview' | 'ingest-logs' | 'export-logs'
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Deadlines State
-  const [deadlines, setDeadlines] = useState(() => {
-    const saved = localStorage.getItem('agent_deadlines');
-    return saved ? JSON.parse(saved) : INITIAL_DEADLINES;
+  // Gemini API Key & Live AI Settings State
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
   });
+  const [useLiveAI, setUseLiveAI] = useState(() => {
+    const key = localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+    return Boolean(key);
+  });
+
+  // Automated Email Account State
+  const [emailAccount, setEmailAccount] = useState('adityabhanushali2006@gmail.com');
+  const [appPassword, setAppPassword] = useState(() => localStorage.getItem('sakec_app_password') || '');
+
+  // Deadlines State (Loads automatically from auto_parsed_deadlines.json)
+  const [deadlines, setDeadlines] = useState(() => {
+    if (autoParsedData && Array.isArray(autoParsedData.deadlines) && autoParsedData.deadlines.length > 0) {
+      return autoParsedData.deadlines;
+    }
+    const saved = localStorage.getItem('agent_deadlines');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // Fallthrough
+      }
+    }
+    return [];
+  });
+
+  // Live Auto-Sync: Poll /src/auto_parsed_deadlines.json every 2.5 seconds
+  useEffect(() => {
+    const checkLiveUpdates = async () => {
+      try {
+        const res = await fetch(`/src/auto_parsed_deadlines.json?t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data) {
+          // 1. Sync Deadlines
+          if (Array.isArray(data.deadlines) && data.deadlines.length > 0) {
+            setDeadlines(prev => {
+              const newItems = data.deadlines.filter(
+                autoItem => !prev.some(
+                  pe => pe.title.trim().toLowerCase() === autoItem.title.trim().toLowerCase() && 
+                        pe.course.trim().toLowerCase() === autoItem.course.trim().toLowerCase()
+                )
+              );
+              if (newItems.length > 0) {
+                showToast(`✨ Live Agent: Synced ${newItems.length} new automated deadline(s) from email!`, 'success');
+                return [...newItems, ...prev];
+              }
+              return prev;
+            });
+          }
+
+          // 2. Sync Ingestion Email Logs
+          if (Array.isArray(data.ingestLogs) && data.ingestLogs.length > 0) {
+            setIngestLogs(prevLogs => {
+              const newLogItems = data.ingestLogs.filter(
+                l => !prevLogs.some(pl => pl.id === l.id || (pl.timestamp === l.timestamp && pl.message === l.message))
+              );
+              if (newLogItems.length > 0) {
+                return [...newLogItems, ...prevLogs];
+              }
+              return prevLogs;
+            });
+          }
+        }
+      } catch {
+        // Silently handle fetch polling errors
+      }
+    };
+
+    checkLiveUpdates();
+    const interval = setInterval(checkLiveUpdates, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to clear all deadlines and reset schedule (remove mock data)
+  const handleClearDeadlines = () => {
+    if (window.confirm('Clear all existing deadlines and start with a clean schedule?')) {
+      setDeadlines([]);
+      localStorage.removeItem('agent_deadlines');
+      showToast('Cleared all deadlines. Dashboard is ready for automated email ingestion!', 'info');
+    }
+  };
 
   // Ingest Mode State: 'agent' (email/chat text) | 'teams' (MS Teams API sync) | 'manual' (manual form)
   const [ingestMode, setIngestMode] = useState('agent');
@@ -56,8 +141,8 @@ function App() {
   const [manualDue, setManualDue] = useState('2026-07-25T23:59');
   const [manualUrgency, setManualUrgency] = useState('Medium');
 
-  // Ingest Logs States
-  const [ingestLogs, setIngestLogs] = useState(MOCK_INGEST_LOGS);
+  // Ingest Logs States (populates automatically from email poller)
+  const [ingestLogs, setIngestLogs] = useState([]);
 
   // Processing Animation State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -90,45 +175,111 @@ function App() {
     }
   };
 
-  // Agent Parsing Simulation Trigger
-  const handleProcessText = () => {
+  // Agent Parsing Trigger (Mock Heuristics or Live Gemini 2.5 Flash API)
+  const handleProcessText = async () => {
     if (!rawText.trim()) {
       showToast('Please paste email or chat text first!', 'error');
       return;
     }
 
+    if (useLiveAI && !apiKey.trim()) {
+      showToast('Please enter your Gemini API Key in the settings panel!', 'error');
+      return;
+    }
+
     setIsProcessing(true);
-    setProcessingSteps([
-      'Initializing Syllabus Agent parsing pipeline...',
-      'Analyzing syntax structures and metadata headers...',
-      `Contextualizing course mapping to "${selectedCourse}"...`,
-      'Running named-entity recognition (NER) on dates & schedules...',
-      'Extracting upcoming assignments, quiz topics & midterms...',
-      'Evaluating urgency thresholds & calendar alignment...',
-      'Generating calendar events and importing payload...'
-    ]);
-    setCurrentStepIndex(0);
+
+    if (useLiveAI) {
+      setProcessingSteps([
+        'Initializing Gemini 2.5 Flash parsing pipeline...',
+        'Formatting context prompt and schema rules...',
+        'Sending API request payload to Gemini...',
+        'Running named-entity extraction on metrics...',
+        'Generating structured deadline records...'
+      ]);
+      setCurrentStepIndex(0);
+
+      try {
+        const newEvents = await parseDeadlinesWithGemini(rawText, selectedCourse, apiKey);
+        
+        setDeadlines(prev => {
+          if (newEvents.length === 0) {
+            showToast('Gemini analyzed the text but found no deadline dates or assignments.', 'info');
+            return prev;
+          }
+
+          const filteredNew = newEvents.filter(
+            ne => !prev.some(
+              pe => pe.title.trim().toLowerCase() === ne.title.trim().toLowerCase() && 
+                    pe.course.trim().toLowerCase() === ne.course.trim().toLowerCase()
+            )
+          );
+          
+          if (filteredNew.length === 0) {
+            showToast(`Found ${newEvents.length} deadline(s), but all already exist in your schedule!`, 'info');
+            return prev;
+          }
+
+          showToast(`Gemini AI successfully extracted ${filteredNew.length} deadline(s)!`, 'success');
+          return [...filteredNew, ...prev];
+        });
+
+        // Add to Ingest Logs
+        const newLog = {
+          id: `log-gemini-${Date.now()}`,
+          timestamp: new Date().toISOString().substring(0, 19),
+          source: 'Gemini 2.5 Flash API',
+          status: 'Success',
+          message: `Parsed ${newEvents.length} event(s) for ${selectedCourse} using live LLM agent.`
+        };
+        setIngestLogs(prev => [newLog, ...prev]);
+      } catch (err) {
+        showToast(err.message || 'Gemini API call failed', 'error');
+      } finally {
+        setIsProcessing(false);
+        setProcessingSteps([]);
+        setCurrentStepIndex(-1);
+      }
+    } else {
+      setProcessingSteps([
+        'Initializing Syllabus Agent parsing pipeline...',
+        'Analyzing syntax structures and metadata headers...',
+        `Contextualizing course mapping to "${selectedCourse}"...`,
+        'Running named-entity recognition (NER) on dates & schedules...',
+        'Extracting upcoming assignments, quiz topics & midterms...',
+        'Evaluating urgency thresholds & calendar alignment...',
+        'Generating calendar events and importing payload...'
+      ]);
+      setCurrentStepIndex(0);
+    }
   };
 
-  // Step-by-step terminal simulation
+  // Step-by-step terminal simulation for mock parser
   useEffect(() => {
-    if (isProcessing && currentStepIndex < processingSteps.length) {
+    if (!useLiveAI && isProcessing && currentStepIndex < processingSteps.length) {
       const timer = setTimeout(() => {
         setCurrentStepIndex(prev => prev + 1);
       }, 700); // Progress every 700ms
       return () => clearTimeout(timer);
-    } else if (isProcessing && currentStepIndex >= processingSteps.length) {
-      // Done processing, parse the deadlines
+    } else if (!useLiveAI && isProcessing && currentStepIndex >= processingSteps.length) {
+      // Done mock processing, parse deadlines via heuristics
       const newEvents = simulateAgentParser(rawText, selectedCourse);
       
       setDeadlines(prev => {
-        // Filter out duplicates (simple key match on title and course)
+        if (newEvents.length === 0) {
+          showToast('Mock parser found no recognized deadline keywords in text.', 'info');
+          return prev;
+        }
+
         const filteredNew = newEvents.filter(
-          ne => !prev.some(pe => pe.title.toLowerCase() === ne.title.toLowerCase() && pe.course === ne.course)
+          ne => !prev.some(
+            pe => pe.title.trim().toLowerCase() === ne.title.trim().toLowerCase() && 
+                  pe.course.trim().toLowerCase() === ne.course.trim().toLowerCase()
+          )
         );
         
         if (filteredNew.length === 0) {
-          showToast('No new deadlines detected or already imported.', 'info');
+          showToast('No new deadlines detected or items already exist in schedule.', 'info');
           return prev;
         }
 
@@ -150,7 +301,7 @@ function App() {
       setProcessingSteps([]);
       setCurrentStepIndex(-1);
     }
-  }, [isProcessing, currentStepIndex]);
+  }, [useLiveAI, isProcessing, currentStepIndex]);
 
   // Teams Sync Simulation Trigger
   const handleTeamsSync = () => {
@@ -445,6 +596,91 @@ function App() {
           </nav>
         </div>
 
+        {/* Live Gemini AI Settings Panel */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/40">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+              Live Gemini AI
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={useLiveAI}
+                onChange={(e) => setUseLiveAI(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-violet-600"></div>
+            </label>
+          </div>
+          
+          {useLiveAI && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Gemini API Key</label>
+              <input 
+                type="password"
+                placeholder="Paste Gemini API Key..."
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  localStorage.setItem("gemini_api_key", e.target.value);
+                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500 text-slate-800 dark:text-slate-200 font-mono"
+              />
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
+                {apiKey ? '✓ Key configured' : '⚠️ Key required'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Automated Email Inbox Sync (SAKEC Account) */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/40">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              Automated Email Agent
+            </span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+              Live IMAP
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Connected University Mail
+              </label>
+              <input 
+                type="email"
+                value={emailAccount}
+                onChange={(e) => setEmailAccount(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-xs font-medium text-slate-700 dark:text-slate-300"
+                readOnly
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Google App Password
+              </label>
+              <input 
+                type="password"
+                placeholder="16-character App Password..."
+                value={appPassword}
+                onChange={(e) => {
+                  setAppPassword(e.target.value);
+                  localStorage.setItem('sakec_app_password', e.target.value);
+                }}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 dark:text-slate-200 font-mono"
+              />
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1">
+                Run <code className="text-violet-600 dark:text-violet-400 font-mono">npm run poller:email</code> to start live polling.
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Sidebar Info Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 text-center">
           <p className="text-xs text-slate-500 dark:text-slate-500 font-medium">
@@ -550,299 +786,109 @@ function App() {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* LEFT COLUMN: Data-entry interface */}
+            {/* LEFT COLUMN: Automated Email Agent Workstation */}
             <section className="lg:col-span-5 space-y-6">
               
-              {/* Presets Card removed to simplify UI layout */}
-
-              {/* Data Ingest Workstation */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 p-6 space-y-5">
+              {/* Automated Email Watcher Status Station */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 p-6 space-y-6">
                 
-                {/* Segmented Ingest Mode Controller */}
-                <div className="flex border-b border-slate-100 dark:border-slate-850 pb-3 gap-1 select-none">
-                  <button
-                    type="button"
-                    onClick={() => setIngestMode('agent')}
-                    className={`flex-1 py-2 text-center rounded-lg text-[11px] font-bold tracking-tight transition-all cursor-pointer ${
-                      ingestMode === 'agent'
-                        ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30'
-                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/30'
-                    }`}
-                  >
-                    Email Agent
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIngestMode('teams')}
-                    className={`flex-1 py-2 text-center rounded-lg text-[11px] font-bold tracking-tight transition-all cursor-pointer ${
-                      ingestMode === 'teams'
-                        ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30'
-                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/30'
-                    }`}
-                  >
-                    MS Teams API
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIngestMode('manual')}
-                    className={`flex-1 py-2 text-center rounded-lg text-[11px] font-bold tracking-tight transition-all cursor-pointer ${
-                      ingestMode === 'manual'
-                        ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30'
-                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/30'
-                    }`}
-                  >
-                    Manual Input
-                  </button>
-                </div>
-
-                {ingestMode === 'agent' && (
-                  /* Standard LLM Inbox Ingest Form */
-                  <div className="space-y-4 pt-1">
-                    {/* Course Selection dropdown */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Targeted Course Area
-                      </label>
-                      <select
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200 cursor-pointer"
-                      >
-                        {COURSES.map((course) => (
-                          <option key={course} value={course}>
-                            {course}
-                          </option>
-                        ))}
-                      </select>
+                {/* Header Badge */}
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-violet-600/10 dark:bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+                      <Mail className="h-5 w-5" />
                     </div>
-
-                    {/* Copy-paste textarea */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Raw Text Content (Email / Discord / Chat)
-                      </label>
-                      <textarea
-                        rows={8}
-                        value={rawText}
-                        onChange={(e) => setRawText(e.target.value)}
-                        placeholder="Paste unread university emails, WhatsApp announcements or Discord chat logs containing syllabus/deadline details here..."
-                        className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all font-mono text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-y"
-                      ></textarea>
-                    </div>
-
-                    {/* Agent Run Action Button */}
-                    <button
-                      type="button"
-                      disabled={isProcessing}
-                      onClick={handleProcessText}
-                      className={`w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                        isProcessing 
-                          ? 'bg-violet-500/70 cursor-not-allowed'
-                          : 'bg-violet-600 hover:bg-violet-700 hover:shadow-violet-500/25 hover:translate-y-[-1px] active:translate-y-0'
-                      }`}
-                    >
-                      {isProcessing ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Processing Parsing Stream...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4.5 w-4.5" />
-                          Process Text with Agent
-                        </>
-                      )}
-                    </button>
-
-                    {/* Processing Terminal Box */}
-                    {isProcessing && (
-                      <div className="mt-4 p-4 rounded-xl bg-slate-900 dark:bg-black border border-slate-800/80 font-mono text-[11px] text-emerald-400 space-y-1.5 shadow-inner overflow-hidden animate-pulse">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2 text-slate-500">
-                          <span>AGENT RUNTIME CONSOLE</span>
-                          <span className="text-[9px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded">ONLINE</span>
-                        </div>
-                        {processingSteps.slice(0, currentStepIndex + 1).map((step, idx) => (
-                          <div key={idx} className="flex gap-2">
-                            <span className="text-emerald-600 select-none">&gt;</span>
-                            <span className="leading-relaxed">{step}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {ingestMode === 'teams' && (
-                  /* Microsoft Teams API Sync Simulator */
-                  <div className="space-y-4 pt-1">
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 space-y-1 text-xs">
-                      <div className="flex justify-between font-semibold">
-                        <span className="text-slate-400">Teams Endpoint:</span>
-                        <span className="text-slate-700 dark:text-slate-350">Active (/channels/messages)</span>
-                      </div>
-                      <div className="flex justify-between font-semibold">
-                        <span className="text-slate-400">Target Channel:</span>
-                        <span className="text-violet-600 dark:text-violet-400 font-bold">#{teamsChannel.toLowerCase().replace(/\s+/g, '-')}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Select Target Teams Message (Graph Mock Feed)
-                      </label>
-                      <select
-                        value={selectedTeamsMsgIdx}
-                        onChange={(e) => setSelectedTeamsMsgIdx(parseInt(e.target.value))}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200 cursor-pointer"
-                      >
-                        {MOCK_TEAMS_MESSAGES.map((msg, idx) => (
-                          <option key={msg.id} value={idx}>
-                            {msg.sender.split(' ')[0]}'s Post: {msg.text.substring(0, 45)}...
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Show preview of the selected Teams channel message */}
-                    <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-950/20 font-medium text-xs leading-relaxed space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-1.5 text-slate-400 font-semibold">
-                        <span>From: {MOCK_TEAMS_MESSAGES[selectedTeamsMsgIdx].sender}</span>
-                        <span>{new Date(MOCK_TEAMS_MESSAGES[selectedTeamsMsgIdx].timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      </div>
-                      <p className="text-slate-700 dark:text-slate-300 font-mono italic">
-                        "{MOCK_TEAMS_MESSAGES[selectedTeamsMsgIdx].text}"
+                    <div>
+                      <h3 className="font-bold text-slate-950 dark:text-white text-sm">
+                        Automated Email Ingestion Agent
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Live IMAP Email Watcher (Gemini AI)
                       </p>
                     </div>
-
-                    {/* Sync Trigger Button */}
-                    <button
-                      type="button"
-                      disabled={isTeamsSyncing}
-                      onClick={handleTeamsSync}
-                      className={`w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                        isTeamsSyncing 
-                          ? 'bg-violet-500/70 cursor-not-allowed'
-                          : 'bg-violet-600 hover:bg-violet-700 hover:shadow-violet-500/25 hover:translate-y-[-1px] active:translate-y-0'
-                      }`}
-                    >
-                      {isTeamsSyncing ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Querying Graph API...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4.5 w-4.5" />
-                          Sync Teams Channel Feed
-                        </>
-                      )}
-                    </button>
-
-                    {/* Teams Sync Terminal Console Output */}
-                    {isTeamsSyncing && (
-                      <div className="p-4 rounded-xl bg-slate-900 dark:bg-black border border-slate-800/80 font-mono text-[11px] text-emerald-400 space-y-1.5 shadow-inner overflow-hidden animate-pulse">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2 text-slate-500">
-                          <span>MICROSOFT GRAPH API DEPLOYER</span>
-                          <span className="text-[9px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded">CONNECTED</span>
-                        </div>
-                        {teamsSyncSteps.slice(0, currentTeamsStepIdx + 1).map((step, idx) => (
-                          <div key={idx} className="flex gap-2">
-                            <span className="text-emerald-600 select-none">&gt;</span>
-                            <span className="leading-relaxed">{step}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                )}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40 animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    ACTIVE
+                  </span>
+                </div>
 
-                {ingestMode === 'manual' && (
-                  /* Manual Entry Form */
-                  <form onSubmit={handleAddManualDeadline} className="space-y-4 pt-1">
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Course
-                      </label>
-                      <select
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200 cursor-pointer"
-                      >
-                        {COURSES.map((course) => (
-                          <option key={course} value={course}>
-                            {course}
-                          </option>
-                        ))}
-                      </select>
+                {/* Account Details Box */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">Connected Inbox:</span>
+                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+                      adityabhanushali2006@gmail.com
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">Parser Engine:</span>
+                    <span className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Gemini 2.5 Flash
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">Sync Protocol:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      IMAP Real-Time Auto-Poll (2.5s)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ingestion Live Summary Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 space-y-1">
+                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+                      Parsed Deadlines
+                    </span>
+                    <div className="text-2xl font-black text-violet-950 dark:text-violet-200">
+                      {deadlines.length}
                     </div>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Deadline Title
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Lab 3: B+ Tree Indexing"
-                        value={manualTitle}
-                        onChange={(e) => setManualTitle(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200"
-                      />
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-200/60 dark:border-slate-800/80 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Processed Mails
+                    </span>
+                    <div className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                      {ingestLogs.length}
                     </div>
+                  </div>
+                </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Description / Syllabus Detail
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Detail syllabus requirements or submission guidelines..."
-                        value={manualDesc}
-                        onChange={(e) => setManualDesc(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-700 dark:text-slate-300 resize-none"
-                      />
-                    </div>
+                {/* Information Card */}
+                <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 text-xs text-blue-800 dark:text-blue-300 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-200">
+                    <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    Zero-Touch Automated Extraction
+                  </div>
+                  <p className="leading-relaxed text-[11px] text-blue-700/90 dark:text-blue-300/90">
+                    No manual typing needed! Any official university announcement, homework, quiz, or exam email received in your inbox is parsed by Gemini AI and appended directly to your dashboard.
+                  </p>
+                </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Due Date & Time
-                        </label>
-                        <input
-                          type="datetime-local"
-                          required
-                          value={manualDue}
-                          onChange={(e) => setManualDue(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200 cursor-pointer"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Urgency
-                        </label>
-                        <select
-                          value={manualUrgency}
-                          onChange={(e) => setManualUrgency(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-violet-500/25 transition-all text-slate-800 dark:text-slate-200 cursor-pointer"
-                        >
-                          <option value="High">High Urgency</option>
-                          <option value="Medium">Medium Urgency</option>
-                          <option value="Low">Low Urgency</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-3 bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Plus className="h-4.5 w-4.5" />
-                      Create Event Record
-                    </button>
-                  </form>
-                )}
+                {/* Manual Refresh / Re-Sync Action */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    showToast('🔄 Syncing latest email extraction database...', 'info');
+                    try {
+                      const res = await fetch(`/src/auto_parsed_deadlines.json?t=${Date.now()}`);
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.deadlines) setDeadlines(data.deadlines);
+                        if (data.ingestLogs) setIngestLogs(data.ingestLogs);
+                        showToast('✨ Dashboard updated with latest email deadlines!', 'success');
+                      }
+                    } catch {
+                      showToast('Unable to reach auto_parsed_deadlines.json', 'error');
+                    }
+                  }}
+                  className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:shadow-violet-500/25"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Force Refresh Email Stream
+                </button>
 
               </div>
             </section>
@@ -1021,10 +1067,10 @@ function App() {
                 </h3>
               </div>
               <button 
-                onClick={() => setIngestLogs(MOCK_INGEST_LOGS)}
-                className="text-xs text-violet-600 dark:text-violet-400 font-bold hover:underline cursor-pointer"
+                onClick={() => setIngestLogs([])}
+                className="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
               >
-                Reset Log History
+                Clear Log History
               </button>
             </div>
 

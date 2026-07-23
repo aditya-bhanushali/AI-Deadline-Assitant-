@@ -7,11 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "poller:email": "node email_poller.js",
+    "poller:teams": "node teams_poller.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.3.3",
+    "dotenv": "^17.4.2",
+    "imapflow": "^1.4.8",
     "lucide-react": "^1.25.0",
+    "mailparser": "^3.9.14",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.3"

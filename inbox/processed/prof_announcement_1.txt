@@ -1,0 +1,15 @@
+Subject: COMP_NET_402: Emergency Midterm Exam & Lab 5 Schedule
+From: prof.richards@university.edu
+Date: July 21, 2026
+
+Dear Computer Networks Class,
+
+Please note the updated schedule for the remainder of the semester:
+
+1. Lab 5 (Socket Programming with TCP/UDP) is officially due on August 4th, 2026 at 11:59 PM.
+2. The Midterm Exam on Network Security & Protocols will take place on August 10th, 2026 from 10:00 AM to 12:00 PM.
+
+Please prepare accordingly.
+
+Best,
+Prof. Richards
