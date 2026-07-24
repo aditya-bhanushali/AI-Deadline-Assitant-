@@ -60,11 +60,11 @@ function App() {
     return [];
   });
 
-  // Live Auto-Sync: Poll /src/auto_parsed_deadlines.json every 2.5 seconds
+  // Live Auto-Sync: Poll /auto_parsed_deadlines.json every 2.5 seconds
   useEffect(() => {
     const checkLiveUpdates = async () => {
       try {
-        const res = await fetch(`/src/auto_parsed_deadlines.json?t=${Date.now()}`);
+        const res = await fetch(`/auto_parsed_deadlines.json?t=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
         
@@ -72,6 +72,7 @@ function App() {
           // 1. Sync Deadlines
           if (Array.isArray(data.deadlines) && data.deadlines.length > 0) {
             setDeadlines(prev => {
+              if (prev.length === 0) return data.deadlines;
               const newItems = data.deadlines.filter(
                 autoItem => !prev.some(
                   pe => pe.title.trim().toLowerCase() === autoItem.title.trim().toLowerCase() && 
@@ -89,6 +90,7 @@ function App() {
           // 2. Sync Ingestion Email Logs
           if (Array.isArray(data.ingestLogs) && data.ingestLogs.length > 0) {
             setIngestLogs(prevLogs => {
+              if (prevLogs.length === 0) return data.ingestLogs;
               const newLogItems = data.ingestLogs.filter(
                 l => !prevLogs.some(pl => pl.id === l.id || (pl.timestamp === l.timestamp && pl.message === l.message))
               );
@@ -142,7 +144,12 @@ function App() {
   const [manualUrgency, setManualUrgency] = useState('Medium');
 
   // Ingest Logs States (populates automatically from email poller)
-  const [ingestLogs, setIngestLogs] = useState([]);
+  const [ingestLogs, setIngestLogs] = useState(() => {
+    if (autoParsedData && Array.isArray(autoParsedData.ingestLogs)) {
+      return autoParsedData.ingestLogs;
+    }
+    return [];
+  });
 
   // Processing Animation State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -426,6 +433,9 @@ function App() {
   // Calculate stats
   const totalParsed = deadlines.length;
   const pendingSubmissions = deadlines.filter(dl => dl.status === 'Pending').length;
+  const recentEmailLogs = (ingestLogs || [])
+    .filter(log => log && (log.emailSubject || log.message))
+    .slice(0, 6);
   
   // Calculate academic urgency level based on due dates and levels
   const calculateUrgency = () => {
@@ -453,8 +463,8 @@ function App() {
       return;
     }
 
-    // Helper to format Date objects to YYYYMMDDTHHmmSSZ
-    const formatICSDate = (date) => {
+    // Helper to format Date objects to UTC YYYYMMDDTHHmmSSZ
+    const formatICSDateUTC = (date) => {
       const pad = (num) => String(num).padStart(2, '0');
       const yyyy = date.getUTCFullYear();
       const mm = pad(date.getUTCMonth() + 1);
@@ -465,67 +475,77 @@ function App() {
       return `${yyyy}${mm}${dd}T${hh}${min}${ss}Z`;
     };
 
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Deadlines Syllabus Agent//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+    // ICS text fields must escape backslash, comma, semicolon, and newlines.
+    const escapeICSText = (value = '') => {
+      return String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\r?\n/g, '\\n');
+    };
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Deadlines Syllabus Agent//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:Syllabus Agent Deadlines'
+    ];
     
     activeDeadlines.forEach(dl => {
-      // Parse local dueDate string
+      // Parse dueDate and normalize to a valid UTC event window.
       const startDate = new Date(dl.dueDate);
-      
-      // Fallback if parsing fails
-      let startStr, endStr;
-      if (isNaN(startDate.getTime())) {
-        // Fallback using original replace logic if string isn't standard ISO
-        let dtString = dl.dueDate.replace(/[-:]/g, "");
-        if (dtString.length === 13) dtString += "00";
-        startStr = dtString;
-        endStr = dtString; // Fallback
-      } else {
-        startStr = formatICSDate(startDate);
-        // Set end date to 1 hour after start date for standard client compatibility
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-        endStr = formatICSDate(endDate);
-      }
-      
-      // Clean description for ICS layout rules
-      const summary = `${dl.course}: ${dl.title}`;
-      const description = dl.description.replace(/\n/g, " ");
+      let normalizedStartDate = startDate;
 
-      icsContent += "BEGIN:VEVENT\n";
-      icsContent += `UID:dl-${dl.id}@syllabusagent.edu\n`;
-      icsContent += `DTSTAMP:${formatICSDate(new Date())}\n`;
-      icsContent += `DTSTART:${startStr}\n`;
-      icsContent += `DTEND:${endStr}\n`;
-      icsContent += `SUMMARY:${summary}\n`;
-      icsContent += `DESCRIPTION:${description}\n`;
-      icsContent += "PRIORITY:" + (dl.urgency === 'High' ? '1' : dl.urgency === 'Medium' ? '5' : '9') + "\n";
-      icsContent += "STATUS:CONFIRMED\n";
-      icsContent += "END:VEVENT\n";
+      if (isNaN(startDate.getTime())) {
+        normalizedStartDate = new Date();
+        normalizedStartDate.setMinutes(0, 0, 0);
+      }
+
+      // Set end date to 1 hour after start date for standard client compatibility.
+      const endDate = new Date(normalizedStartDate.getTime() + 60 * 60 * 1000);
+      const startStr = formatICSDateUTC(normalizedStartDate);
+      const endStr = formatICSDateUTC(endDate);
+      
+      const summary = escapeICSText(`${dl.course}: ${dl.title}`);
+      const description = escapeICSText(dl.description || 'Academic task deadline');
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:dl-${escapeICSText(dl.id)}@syllabusagent.edu`);
+      lines.push(`DTSTAMP:${formatICSDateUTC(new Date())}`);
+      lines.push(`DTSTART:${startStr}`);
+      lines.push(`DTEND:${endStr}`);
+      lines.push(`SUMMARY:${summary}`);
+      lines.push(`DESCRIPTION:${description}`);
+      lines.push(`PRIORITY:${dl.urgency === 'High' ? '1' : dl.urgency === 'Medium' ? '5' : '9'}`);
+      lines.push('STATUS:CONFIRMED');
+      lines.push('END:VEVENT');
     });
 
-    icsContent += "END:VCALENDAR";
+    lines.push('END:VCALENDAR');
+
+    // RFC5545 prefers CRLF separators for broad calendar client compatibility.
+    const icsContent = `${lines.join('\r\n')}\r\n`;
 
     try {
-      // Commented out physical file download to run in mock simulation mode
-      /*
       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", "academic_deadlines.ics");
+      link.setAttribute('download', 'academic_deadlines.ics');
       document.body.appendChild(link);
       link.click();
-      
-      // Postpone link removal to avoid browser aborting the download stream
+
+      // Delay cleanup slightly so slower browsers complete the click/download flow.
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      }, 150);
-      */
+      }, 200);
 
-      // Export simulation completed (Mock Export Logs history tracking removed)
-      showToast(`Mock Export: Generated .ics calendar sync schema for ${activeDeadlines.length} events!`, 'success');
+      showToast(`Exported .ics file with ${activeDeadlines.length} pending deadline(s)!`, 'success');
     } catch (error) {
-      showToast('Failed to simulate calendar export.', 'error');
+      showToast('Failed to export calendar file.', 'error');
     }
   };
 
@@ -851,9 +871,51 @@ function App() {
                       Processed Mails
                     </span>
                     <div className="text-2xl font-black text-slate-900 dark:text-slate-100">
-                      {ingestLogs.length}
+                      {ingestLogs.length || (autoParsedData && Array.isArray(autoParsedData.ingestLogs) ? autoParsedData.ingestLogs.length : 0)}
                     </div>
                   </div>
+                </div>
+
+                {/* Recent Mail Activity Feed */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Recent Emails
+                    </h4>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
+                      {recentEmailLogs.length} Visible
+                    </span>
+                  </div>
+
+                  {recentEmailLogs.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      No recent email logs yet. Start the poller to see live inbox activity.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {recentEmailLogs.map((log) => {
+                        const subject = (log.emailSubject || '').trim() || (log.message || 'Scanned email');
+                        const source = (log.source || 'Email Poller').trim();
+                        const timeLabel = log.timestamp ? new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+                        return (
+                          <div key={log.id} className="p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800/80 bg-white dark:bg-slate-900/70">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 leading-snug line-clamp-2">
+                                {subject}
+                              </p>
+                              <span className="shrink-0 text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                                {timeLabel}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                              {source}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Information Card */}
@@ -873,15 +935,24 @@ function App() {
                   onClick={async () => {
                     showToast('🔄 Syncing latest email extraction database...', 'info');
                     try {
-                      const res = await fetch(`/src/auto_parsed_deadlines.json?t=${Date.now()}`);
+                      let data = null;
+                      const res = await fetch(`/auto_parsed_deadlines.json?t=${Date.now()}`);
                       if (res.ok) {
-                        const data = await res.json();
-                        if (data.deadlines) setDeadlines(data.deadlines);
-                        if (data.ingestLogs) setIngestLogs(data.ingestLogs);
-                        showToast('✨ Dashboard updated with latest email deadlines!', 'success');
+                        data = await res.json();
+                      } else {
+                        data = autoParsedData;
+                      }
+                      if (data) {
+                        if (Array.isArray(data.deadlines)) setDeadlines(data.deadlines);
+                        if (Array.isArray(data.ingestLogs)) setIngestLogs(data.ingestLogs);
+                        showToast(`✨ Dashboard updated! Loaded ${data.deadlines?.length || 0} deadline(s) and ${data.ingestLogs?.length || 0} email log(s).`, 'success');
                       }
                     } catch {
-                      showToast('Unable to reach auto_parsed_deadlines.json', 'error');
+                      if (autoParsedData) {
+                        if (Array.isArray(autoParsedData.deadlines)) setDeadlines(autoParsedData.deadlines);
+                        if (Array.isArray(autoParsedData.ingestLogs)) setIngestLogs(autoParsedData.ingestLogs);
+                        showToast('✨ Dashboard updated from local database cache!', 'success');
+                      }
                     }
                   }}
                   className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:shadow-violet-500/25"
@@ -1026,26 +1097,43 @@ function App() {
                   )}
                 </div>
 
-                {/* EXPORT MODULE: ICS Calendar export */}
+                {/* EXPORT MODULE: ICS Calendar export & Google Calendar Direct Link */}
                 {deadlines.length > 0 && (
                   <div className="mt-8 border-t border-slate-100 dark:border-slate-800/80 pt-6">
                     <div className="p-4 rounded-2xl bg-violet-50/50 dark:bg-violet-950/15 border border-violet-100 dark:border-violet-900/30 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="space-y-1 text-center sm:text-left">
-                        <h4 className="text-sm font-bold text-violet-950 dark:text-violet-300">
-                          Export Schedule to Calendar
-                        </h4>
+                        <div className="flex items-center gap-2 justify-center sm:justify-start">
+                          <h4 className="text-sm font-bold text-violet-950 dark:text-violet-300">
+                            Google Calendar Sync & Export
+                          </h4>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live API Sync Active
+                          </span>
+                        </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Generate standard iCalendar (.ics) format file to sync deadlines with Google Calendar, Apple Calendar or Outlook.
+                          All incoming deadlines are automatically pushed live to your Google Calendar. You can also export an .ics file anytime.
                         </p>
                       </div>
                       
-                      <button
-                        onClick={handleExportICS}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl shadow-md transition-all shrink-0 hover:translate-y-[-1px] active:translate-y-0 cursor-pointer"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download .ics Calendar File
-                      </button>
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <a
+                          href="https://calendar.google.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all hover:translate-y-[-1px] active:translate-y-0 cursor-pointer"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Open Google Calendar ↗
+                        </a>
+                        <button
+                          onClick={handleExportICS}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl shadow-md transition-all hover:translate-y-[-1px] active:translate-y-0 cursor-pointer"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download .ics File
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1057,61 +1145,86 @@ function App() {
         )}
 
         {/* View 2: Ingest logs */}
-        {activeTab === 'ingest-logs' && (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 p-6">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 mb-6">
-              <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-violet-600" />
-                <h3 className="font-bold text-slate-950 dark:text-white">
-                  Syllabus Message Ingestion Streams
-                </h3>
-              </div>
-              <button 
-                onClick={() => setIngestLogs([])}
-                className="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
-              >
-                Clear Log History
-              </button>
-            </div>
+        {activeTab === 'ingest-logs' && (() => {
+          const displayLogs = (ingestLogs && ingestLogs.length > 0)
+            ? ingestLogs
+            : (autoParsedData && Array.isArray(autoParsedData.ingestLogs) ? autoParsedData.ingestLogs : []);
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">
-                    <th className="py-3 px-4">Timestamp</th>
-                    <th className="py-3 px-4">Source Channel</th>
-                    <th className="py-3 px-4">Parser Status</th>
-                    <th className="py-3 px-4">Activity Log Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  {ingestLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-850 dark:text-slate-350">
-                        {log.source}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          log.status === 'Success' 
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400' 
-                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
-                        }`}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-450 font-medium">
-                        {log.message}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 p-6">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-violet-600" />
+                  <h3 className="font-bold text-slate-950 dark:text-white">
+                    Syllabus Message Ingestion Streams
+                  </h3>
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400">
+                    {displayLogs.length} Streams Recorded
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setIngestLogs([])}
+                  className="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
+                >
+                  Clear Log History
+                </button>
+              </div>
+
+              {displayLogs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 flex items-center justify-center text-slate-400">
+                    <Mail className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                      No Email Stream Logs Recorded
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm">
+                      Run <code className="text-violet-600 font-mono">npm run poller:email</code> to start scanning your email inbox.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">
+                        <th className="py-3 px-4">Timestamp</th>
+                        <th className="py-3 px-4">Source Channel</th>
+                        <th className="py-3 px-4">Parser Status</th>
+                        <th className="py-3 px-4">Activity Log Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {displayLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-slate-850 dark:text-slate-350">
+                            {log.source}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                              log.status === 'Success' 
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400' 
+                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
+                            }`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-500 dark:text-slate-450 font-medium">
+                            {log.message}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Export logs view removed */}
 

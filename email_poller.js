@@ -11,6 +11,7 @@
 
 import 'dotenv/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { google } from 'googleapis';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import fs from 'fs';
@@ -30,13 +31,23 @@ const IMAP_CONFIG = {
   pollIntervalMinutes: parseInt(process.env.EMAIL_POLL_INTERVAL || '5', 10)
 };
 
+const GOOGLE_CALENDAR_CONFIG = {
+  enabled: process.env.GOOGLE_CALENDAR_SYNC_ENABLED === 'true',
+  calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+  timezone: process.env.GOOGLE_CALENDAR_TIMEZONE || 'Asia/Kolkata',
+  clientId: process.env.GOOGLE_CLIENT_ID || '',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  refreshToken: process.env.GOOGLE_REFRESH_TOKEN || ''
+};
+
 const INBOX_DIR = path.join(process.cwd(), 'inbox');
 const PROCESSED_DIR = path.join(INBOX_DIR, 'processed');
 const DATA_FILE = path.join(process.cwd(), 'src', 'auto_parsed_deadlines.json');
+const PUBLIC_DATA_FILE = path.join(process.cwd(), 'public', 'auto_parsed_deadlines.json');
 const CACHE_FILE = path.join(process.cwd(), '.processed_ids.json');
 
 // Ensure required directories exist
-[INBOX_DIR, PROCESSED_DIR, path.dirname(DATA_FILE)].forEach(dir => {
+[INBOX_DIR, PROCESSED_DIR, path.dirname(DATA_FILE), path.dirname(PUBLIC_DATA_FILE)].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -44,6 +55,115 @@ const CACHE_FILE = path.join(process.cwd(), '.processed_ids.json');
 
 // Initialize Gemini Client
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+let warnedCalendarConfigMissing = false;
+
+function makeCalendarSyncKey(deadline) {
+  const base = `${deadline.course || 'General Academic'}|${deadline.title || 'Untitled'}|${deadline.dueDate || ''}`;
+  return base.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9|\-:t]/g, '').slice(0, 120);
+}
+
+function formatLocalDateTime(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+}
+
+function getGoogleCalendarClient() {
+  const { clientId, clientSecret, refreshToken } = GOOGLE_CALENDAR_CONFIG;
+  if (!clientId || !clientSecret || !refreshToken) {
+    if (!warnedCalendarConfigMissing) {
+      console.warn('[Google Calendar Sync] Missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN. Auto-sync is disabled until these are configured.');
+      warnedCalendarConfigMissing = true;
+    }
+    return null;
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  return google.calendar({ version: 'v3', auth: oauth2Client });
+}
+
+function buildCalendarEvent(deadline) {
+  const start = new Date(deadline.dueDate);
+  const fallbackStart = new Date();
+  fallbackStart.setHours(23, 59, 0, 0);
+  const startDate = Number.isNaN(start.getTime()) ? fallbackStart : start;
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+  return {
+    summary: `${deadline.course || 'General Academic'}: ${deadline.title || 'Deadline'}`,
+    description: deadline.description || 'Academic deadline synced by Syllabus Agent.',
+    start: {
+      dateTime: formatLocalDateTime(startDate),
+      timeZone: GOOGLE_CALENDAR_CONFIG.timezone
+    },
+    end: {
+      dateTime: formatLocalDateTime(endDate),
+      timeZone: GOOGLE_CALENDAR_CONFIG.timezone
+    },
+    colorId: deadline.urgency === 'High' ? '11' : deadline.urgency === 'Medium' ? '5' : '10',
+    extendedProperties: {
+      private: {
+        syllabusAgentKey: makeCalendarSyncKey(deadline)
+      }
+    }
+  };
+}
+
+async function syncDeadlinesToGoogleCalendar(newDeadlines) {
+  if (!GOOGLE_CALENDAR_CONFIG.enabled || !Array.isArray(newDeadlines) || newDeadlines.length === 0) {
+    return;
+  }
+
+  const calendar = getGoogleCalendarClient();
+  if (!calendar) return;
+
+  let createdCount = 0;
+  let updatedCount = 0;
+
+  for (const deadline of newDeadlines) {
+    const syncKey = makeCalendarSyncKey(deadline);
+    const eventPayload = buildCalendarEvent(deadline);
+
+    try {
+      const existing = await calendar.events.list({
+        calendarId: GOOGLE_CALENDAR_CONFIG.calendarId,
+        privateExtendedProperty: `syllabusAgentKey=${syncKey}`,
+        maxResults: 1,
+        singleEvents: true
+      });
+
+      const existingEvent = existing.data.items?.[0];
+
+      if (existingEvent?.id) {
+        await calendar.events.patch({
+          calendarId: GOOGLE_CALENDAR_CONFIG.calendarId,
+          eventId: existingEvent.id,
+          requestBody: eventPayload
+        });
+        updatedCount += 1;
+      } else {
+        await calendar.events.insert({
+          calendarId: GOOGLE_CALENDAR_CONFIG.calendarId,
+          requestBody: eventPayload
+        });
+        createdCount += 1;
+      }
+    } catch (error) {
+      console.warn(`[Google Calendar Sync] Failed for "${deadline.title}": ${error.message}`);
+    }
+  }
+
+  if (createdCount > 0 || updatedCount > 0) {
+    console.log(`[Google Calendar Sync] Created ${createdCount}, updated ${updatedCount} event(s) in calendar "${GOOGLE_CALENDAR_CONFIG.calendarId}".`);
+  }
+}
 
 // Load previously parsed message IDs from internal cache file
 function getProcessedMessageIds() {
@@ -77,7 +197,7 @@ function markMessageProcessed(messageId) {
 }
 
 // Save extracted deadlines and log entry to live database file
-function saveExtractedData(newDeadlines, logEntry, messageId) {
+async function saveExtractedData(newDeadlines, logEntry, messageId) {
   let fileData = { deadlines: [], ingestLogs: [] };
   if (fs.existsSync(DATA_FILE)) {
     try {
@@ -110,7 +230,14 @@ function saveExtractedData(newDeadlines, logEntry, messageId) {
   }
 
   fs.writeFileSync(DATA_FILE, JSON.stringify(fileData, null, 2), 'utf-8');
+  fs.writeFileSync(PUBLIC_DATA_FILE, JSON.stringify(fileData, null, 2), 'utf-8');
   markMessageProcessed(messageId);
+
+  try {
+    await syncDeadlinesToGoogleCalendar(uniqueNewDeadlines);
+  } catch (error) {
+    console.warn(`[Google Calendar Sync] Unexpected sync error: ${error.message}`);
+  }
 
   if (uniqueNewDeadlines.length > 0) {
     console.log(`[Auto-Agent] Successfully saved ${uniqueNewDeadlines.length} new deadline(s) and log entry to live dashboard!`);
@@ -329,7 +456,7 @@ async function processLocalInboxFiles() {
       message: `Parsed ${deadlines.length} deadline(s) from local email file.`
     };
 
-    saveExtractedData(deadlines, logEntry, msgId);
+    await saveExtractedData(deadlines, logEntry, msgId);
 
     // Move to processed folder
     const destPath = path.join(PROCESSED_DIR, file);
@@ -413,7 +540,7 @@ async function pollIMAPInbox() {
               : `Scanned email: "${subject.substring(0, 50)}" (No academic deadlines found).`
           };
 
-          saveExtractedData(deadlines, logEntry, msgId);
+          await saveExtractedData(deadlines, logEntry, msgId);
 
           // Mark as seen
           try {
@@ -461,4 +588,5 @@ console.log('================================================================\n'
 
 // Run immediately, then repeat every poll interval
 runPollerCycle();
+setInterval(processLocalInboxFiles, 5000);
 setInterval(runPollerCycle, IMAP_CONFIG.pollIntervalMinutes * 60 * 1000);
