@@ -1,6 +1,16 @@
 {
   "deadlines": [
     {
+      "id": "manual-1784963678111",
+      "course": "Artificial Intelligence",
+      "title": "project",
+      "description": "complete syllabus project",
+      "dueDate": "2026-07-25T15:02",
+      "urgency": "High",
+      "status": "Pending",
+      "extractedAt": "2026-07-25T07:14:38.112Z"
+    },
+    {
       "course": "Software Engineering",
       "title": "Lab Assignment 5: CI/CD Pipeline Automation",
       "description": "Ensure your code is pushed to your repository and build logs are attached.",
@@ -102,6 +112,14 @@
     }
   ],
   "ingestLogs": [
+    {
+      "id": "log-web-1784963678122",
+      "timestamp": "2026-07-25T07:14:38.122Z",
+      "source": "Web Dashboard (Live Entry)",
+      "emailSubject": "project",
+      "status": "Success",
+      "message": "Pushed 1 deadline(s) directly to Google Calendar."
+    },
     {
       "id": "log-file-1784917425991",
       "timestamp": "2026-07-24T18:23:45.991Z",

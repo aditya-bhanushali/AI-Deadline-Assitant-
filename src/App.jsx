@@ -138,10 +138,58 @@ function App() {
   const [currentTeamsStepIdx, setCurrentTeamsStepIdx] = useState(-1);
   
   // Custom manual entry states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [manualCourse, setManualCourse] = useState(COURSES[0] || 'General Academic');
   const [manualTitle, setManualTitle] = useState('');
   const [manualDesc, setManualDesc] = useState('');
   const [manualDue, setManualDue] = useState('2026-07-25T23:59');
   const [manualUrgency, setManualUrgency] = useState('Medium');
+
+  const handleCreateManualTask = async (e) => {
+    if (e) e.preventDefault();
+    if (!manualTitle.trim()) {
+      showToast('Please enter a task title!', 'error');
+      return;
+    }
+
+    const newTask = {
+      id: `manual-${Date.now()}`,
+      course: manualCourse || 'General Academic',
+      title: manualTitle.trim(),
+      description: manualDesc.trim() || 'Manually added academic deadline.',
+      dueDate: manualDue || new Date().toISOString().slice(0, 16),
+      urgency: manualUrgency || 'Medium',
+      status: 'Pending',
+      extractedAt: new Date().toISOString()
+    };
+
+    setDeadlines(prev => {
+      const updated = [newTask, ...prev];
+      localStorage.setItem('agent_deadlines', JSON.stringify(updated));
+      return updated;
+    });
+
+    setManualTitle('');
+    setManualDesc('');
+    setIsAddModalOpen(false);
+
+    try {
+      showToast(`Syncing "${newTask.title}" to Google Calendar...`, 'info');
+      const res = await fetch('/api/sync-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deadline: newTask })
+      });
+
+      if (res.ok) {
+        showToast(`✨ Task "${newTask.title}" added & synced live to Google Calendar!`, 'success');
+      } else {
+        showToast(`Task added to dashboard schedule!`, 'success');
+      }
+    } catch {
+      showToast(`✨ Task "${newTask.title}" added to dashboard!`, 'success');
+    }
+  };
 
   // Ingest Logs States (populates automatically from email poller)
   const [ingestLogs, setIngestLogs] = useState(() => {
@@ -291,6 +339,11 @@ function App() {
         }
 
         showToast(`Agent successfully extracted ${filteredNew.length} deadline(s)!`, 'success');
+        fetch('/api/sync-calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deadlines: filteredNew })
+        }).catch(() => {});
         return [...filteredNew, ...prev];
       });
 
@@ -734,6 +787,13 @@ function App() {
             {activeTab === 'overview' && (
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 shadow-md hover:shadow-violet-500/20 transition-all cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Task Manually
+                </button>
+                <button
                   onClick={handleResetToDefaults}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer"
                   title="Reload default deadlines for testing"
@@ -970,16 +1030,25 @@ function App() {
                 
                 <div>
                   {/* Right feed header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 mb-4 gap-3">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-violet-600" />
                       <h3 className="font-bold text-slate-950 dark:text-white">
                         Upcoming Academic Schedule
                       </h3>
                     </div>
-                    <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold px-2.5 py-1 rounded-full">
-                      {deadlines.length} Items Loaded
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-all cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Task
+                      </button>
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold px-2.5 py-1 rounded-full">
+                        {deadlines.length} Items Loaded
+                      </span>
+                    </div>
                   </div>
 
                   {/* Deadlines List */}
@@ -1229,6 +1298,145 @@ function App() {
         {/* Export logs view removed */}
 
       </main>
+
+      {/* MANUAL ADD TASK MODAL */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                    Add Academic Task Manually
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Directly append a new deadline to your schedule dashboard
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold px-2 py-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManualTask} className="space-y-4">
+              
+              {/* Course Selection */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Course Name
+                </label>
+                <select
+                  value={manualCourse}
+                  onChange={(e) => setManualCourse(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                >
+                  {COURSES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option value="General Academic">General Academic</option>
+                </select>
+              </div>
+
+              {/* Task Title */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Task / Deadline Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lab Assignment 5: CI/CD Pipeline Automation"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-medium text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Description & Instructions
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter details e.g., Push code to GitHub and attach build logs..."
+                  value={manualDesc}
+                  onChange={(e) => setManualDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Due Date & Urgency grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Due Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={manualDue}
+                    onChange={(e) => setManualDue(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-mono text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Urgency Level
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                    {['Low', 'Medium', 'High'].map((urg) => (
+                      <button
+                        key={urg}
+                        type="button"
+                        onClick={() => setManualUrgency(urg)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                          manualUrgency === urg
+                            ? urg === 'High'
+                              ? 'bg-rose-600 text-white border-rose-600'
+                              : urg === 'Medium'
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        {urg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-md hover:shadow-violet-500/20 transition-all cursor-pointer"
+                >
+                  + Save & Add Deadline
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

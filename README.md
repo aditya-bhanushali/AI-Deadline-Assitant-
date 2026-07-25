@@ -37,7 +37,7 @@ Notes:
 - `GOOGLE_CALENDAR_ID=primary` syncs to your main Google account calendar.
 - The poller will skip Calendar sync if these credentials are missing.
 
-### 2) Start the email poller
+### 2 Start the email poller
 
 ```bash
 npm run poller:email

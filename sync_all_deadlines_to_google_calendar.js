@@ -129,13 +129,8 @@ async function upsertDeadline(calendar, deadline) {
   return { created: true };
 }
 
-async function run() {
-  const deadlines = readDeadlinesFromDisk();
-  if (deadlines.length === 0) {
-    console.log('[Calendar Sync] No pending deadlines found to sync.');
-    return;
-  }
-
+export async function syncDeadlinesToGoogleCalendar(deadlines) {
+  if (!Array.isArray(deadlines) || deadlines.length === 0) return { created: 0, updated: 0, skipped: 0 };
   const calendar = createCalendarClient();
   let created = 0;
   let updated = 0;
@@ -152,10 +147,24 @@ async function run() {
       console.warn(`[Calendar Sync] Skipped "${deadline.title || 'Untitled'}": ${error.message}`);
     }
   }
-
-  console.log(`[Calendar Sync] Done. Created: ${created}, Updated: ${updated}, Skipped: ${skipped}.`);
+  return { created, updated, skipped };
 }
 
-run().catch((error) => {
-  failWith(error.message || 'Unknown sync failure.');
-});
+async function run() {
+  const deadlines = readDeadlinesFromDisk();
+  if (deadlines.length === 0) {
+    console.log('[Calendar Sync] No pending deadlines found to sync.');
+    return;
+  }
+
+  const result = await syncDeadlinesToGoogleCalendar(deadlines);
+  console.log(`[Calendar Sync] Done. Created: ${result.created}, Updated: ${result.updated}, Skipped: ${result.skipped}.`);
+}
+
+// Execute if run directly from command line
+if (process.argv[1] && process.argv[1].endsWith('sync_all_deadlines_to_google_calendar.js')) {
+  run().catch((error) => {
+    failWith(error.message || 'Unknown sync failure.');
+  });
+}
+
