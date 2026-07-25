@@ -1,0 +1,14 @@
+From: prof.smith@university.edu
+To: adityabhanushali2006@gmail.com
+Subject: Software Engineering - Lab Assignment 5 Submission Deadline
+Date: Fri, 24 Jul 2026 23:30:00 +0530
+
+Dear Students,
+
+Please note that Lab Assignment 5: CI/CD Pipeline Automation for Software Engineering is due on August 28, 2026 at 23:59 IST.
+
+Ensure your code is pushed to your repository and build logs are attached.
+
+Best regards,
+Prof. Smith
+Department of Computer Science

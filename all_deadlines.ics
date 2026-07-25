@@ -1,0 +1,88 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Syllabus Agent//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Syllabus Agent Deadlines
+BEGIN:VEVENT
+UID:auto-email-1784912325306-0@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260722T133000
+DTEND:20260722T143000
+SUMMARY:General Academic: Live Webinar: SSP Automation\, Native to Your Billing Platform
+DESCRIPTION:Tabs' product and marketing leads will demonstrate how SSP runs natively inside your billing platform\, built from real billing data\, connected to your Product Catalog\, and generating audit-ready documentation automatically.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784912309477-0@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260723T235900
+DTEND:20260724T005900
+SUMMARY:General Academic: Quiz of the Day
+DESCRIPTION:Attempt the daily quiz to answer: Which pattern reflects volatility contraction before expansion?
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784912145681-0@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260726T235900
+DTEND:20260727T005900
+SUMMARY:General Academic: Quiz: Bizquezt #33: Boardrooms and Blockbusters - Enrollment Deadline
+DESCRIPTION:Enrollment for the Bizquezt #33 quiz.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784912099585-0@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260802T235900
+DTEND:20260803T005900
+SUMMARY:DataQuezt #2 - Python for Data: Quiz: DataQuezt #2 - Python for Data
+DESCRIPTION:Single-round individual quiz contest focusing on Python for Data.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784912074704-0@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260802T110000
+DTEND:20260802T120000
+SUMMARY:General Academic: Career Briefing Session: Jobs in IT Security & Cloud
+DESCRIPTION:Career session with industry expert; registration required.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784652052322-3@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260805T100000
+DTEND:20260805T110000
+SUMMARY:General Academic: Quiz 3
+DESCRIPTION:Quiz 3 will take place on August 5th.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784652052322-4@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260812T235900
+DTEND:20260813T005900
+SUMMARY:General Academic: Final Project Prototype Submission
+DESCRIPTION:Submit Final Project prototype upload.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784652026350-1@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260818T235900
+DTEND:20260819T005900
+SUMMARY:COMPUTER_NETWORKS: Assignment 4: Socket Programming
+DESCRIPTION:Submit solutions for Socket Programming assignment.
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:auto-email-1784652026350-2@syllabusagent.local
+DTSTAMP:20260724T180000
+DTSTART:20260822T090000
+DTEND:20260822T100000
+SUMMARY:COMPUTER_NETWORKS: Midterm Exam
+DESCRIPTION:Midterm examination for Computer Networks.
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR
